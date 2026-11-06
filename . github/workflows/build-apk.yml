@@ -13,6 +13,55 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
       - uses: android-actions/setup-android@v3
+
+      - name: Fix flat file structure
+        run: |
+          mkdir -p app/src/main/java/com/magti/game
+          mkdir -p app/src/main/assets/game
+          [ -f AndroidManifest.xml ] && mv AndroidManifest.xml app/src/main/AndroidManifest.xml || true
+          [ -f MainActivity.kt ] && mv MainActivity.kt app/src/main/java/com/magti/game/MainActivity.kt || true
+          [ -f index.html ] && mv index.html app/src/main/assets/game/index.html || true
+          cat > build.gradle.kts <<'EOF'
+          plugins {
+              id("com.android.application") version "8.2.0" apply false
+              id("org.jetbrains.kotlin.android") version "1.9.20" apply false
+          }
+          EOF
+          cat > app/build.gradle.kts <<'EOF'
+          plugins {
+              id("com.android.application")
+              id("org.jetbrains.kotlin.android")
+          }
+          android {
+              namespace = "com.magti.game"
+              compileSdk = 34
+              defaultConfig {
+                  applicationId = "com.magti.game"
+                  minSdk = 24
+                  targetSdk = 34
+                  versionCode = 1
+                  versionName = "1.0"
+              }
+              buildTypes {
+                  release {
+                      isMinifyEnabled = false
+                      proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+                  }
+              }
+              compileOptions {
+                  sourceCompatibility = JavaVersion.VERSION_17
+                  targetCompatibility = JavaVersion.VERSION_17
+              }
+              kotlinOptions { jvmTarget = "17" }
+          }
+          dependencies {
+              implementation("androidx.activity:activity:1.8.2")
+              implementation("androidx.core:core-ktx:1.12.0")
+          }
+          EOF
+          echo "# Keep WebView" > app/proguard-rules.pro
+          ls -R
+
       - uses: gradle/actions/setup-gradle@v3
         with:
           gradle-version: 8.2
